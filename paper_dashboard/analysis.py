@@ -1,8 +1,6 @@
 import logging
-import math
 import re
-from collections import Counter, defaultdict
-from dataclasses import asdict
+from collections import Counter
 from typing import Dict, Iterable, List, Optional
 
 from .parser import PaperEntry
@@ -96,7 +94,136 @@ def code_availability(papers: Iterable[PaperEntry]) -> Dict[str, float]:
         if paper.has_code:
             with_code += 1
     percentage = (with_code / total * 100) if total else 0
-    return {"with_code": with_code, "total": total, "percentage": round(percentage, 2)}
+    return {
+        "with_code": with_code,
+        "without_code": total - with_code,
+        "total": total,
+        "percentage": round(percentage, 2),
+    }
+
+
+METHOD_KEYWORDS = {
+    "Transformer/LLM": [r"transformer", r"llm", r"gpt", r"prompt", r"in-context"],
+    "Graph Transformer": [r"graph transformer", r"gt\b", r"graphformer", r"gformer"],
+    "Contrastive": [r"contrast", r"consist", r"info(nce)?"],
+    "Diffusion": [r"diffusion", r"denois"],
+    "Few/Fine-tuning": [r"few-?shot", r"meta", r"prompt-?tuning", r"tuning"],
+    "Fairness": [r"fair"],
+    "Robustness/Attack": [r"attack", r"robust", r"adversar", r"defen"],
+    "Heterophily": [r"heteroph", r"hetero"],
+    "Hyperbolic/Geometry": [r"hyperbol", r"geometric", r"curv"],
+}
+
+
+def method_families(papers: Iterable[PaperEntry]) -> List[Dict[str, int]]:
+    counter: Counter[str] = Counter()
+    for paper in papers:
+        lower = paper.title.lower()
+        matched = False
+        for family, patterns in METHOD_KEYWORDS.items():
+            if any(re.search(pat, lower) for pat in patterns):
+                counter[family] += 1
+                matched = True
+        if not matched:
+            counter["Other"] += 1
+    return [{"method": k, "count": counter[k]} for k in sorted(counter.keys(), key=lambda x: (-counter[x], x))]
+
+
+DOMAIN_KEYWORDS = {
+    "Finance/Credit": [r"credit", r"loan", r"financial", r"bank", r"risk", r"account", r"transaction"],
+    "E-commerce/Ads": [r"e-?commerce", r"voucher", r"promotion", r"advertis", r"review", r"product", r"shop"],
+    "Social Media/News": [r"fake news", r"rumor", r"social", r"news", r"engagement", r"bot", r"spam"],
+    "Blockchain/Crypto": [r"blockchain", r"bitcoin", r"ethereum", r"crypto", r"phishing", r"token"],
+    "Telecom": [r"telecom", r"telecommunications", r"call detail", r"cdr"],
+    "Cybersecurity/Malware": [r"malware", r"intrusion", r"phishing", r"attack", r"security"],
+}
+
+
+def domain_focus(papers: Iterable[PaperEntry]) -> List[Dict[str, int]]:
+    counter: Counter[str] = Counter()
+    for paper in papers:
+        lower = paper.title.lower()
+        matched_any = False
+        for domain, patterns in DOMAIN_KEYWORDS.items():
+            if any(re.search(pat, lower) for pat in patterns):
+                counter[domain] += 1
+                matched_any = True
+        if not matched_any:
+            counter["General"] += 1
+    return [{"domain": k, "count": counter[k]} for k in sorted(counter.keys(), key=lambda x: (-counter[x], x))]
+
+
+TOP_VENUES = {
+    "KDD",
+    "NeurIPS",
+    "ICLR",
+    "ICML",
+    "WWW",
+    "TheWebConf",
+    "AAAI",
+    "IJCAI",
+    "WSDM",
+    "SDM",
+    "CIKM",
+    "SIGIR",
+    "ACL",
+    "EMNLP",
+    "ECML",
+    "PAKDD",
+    "TKDE",
+    "TNNLS",
+    "TIFS",
+    "TBD",
+    "TKDD",
+    "ICDE",
+    "ICDM",
+}
+
+
+def venue_strata(papers: Iterable[PaperEntry]) -> List[Dict[str, int]]:
+    counter: Counter[str] = Counter()
+    for paper in papers:
+        venue = paper.venue.lower()
+        if "arxiv" in venue:
+            counter["arXiv"] += 1
+        elif "workshop" in venue:
+            counter["Workshop"] += 1
+        elif any(v.lower() in venue for v in TOP_VENUES):
+            counter["Top conf/journal"] += 1
+        elif "journal" in venue or "transactions" in venue:
+            counter["Journal"] += 1
+        else:
+            counter["Other"] += 1
+    return [{"stratum": k, "count": counter[k]} for k in sorted(counter.keys(), key=lambda x: (-counter[x], x))]
+
+
+DATASET_KEYWORDS = {
+    "DGraph": [r"\bdgraph"],
+    "Elliptic": [r"elliptic"],
+    "Ethereum": [r"ethereum", r"eth\b"],
+    "Bitcoin": [r"bitcoin"],
+    "Twitter/UTwitter": [r"twitter"],
+    "Amazon": [r"amazon"],
+    "Yelp": [r"yelp"],
+    "Mercari": [r"mercari"],
+    "Venmo": [r"venmo"],
+    "JPMC": [r"jpmc"],
+    "Weibo": [r"weibo"],
+    "Alibaba/Tianchi": [r"tianchi"],
+    "AML (Anti-Money Laundering)": [r"\baml\b", r"money laundering"],
+    "IEEE-CIS": [r"ieee-cis"],
+}
+
+
+def dataset_mentions(papers: Iterable[PaperEntry], top_k: int = 12) -> List[Dict[str, int]]:
+    counter: Counter[str] = Counter()
+    for paper in papers:
+        lower = paper.title.lower()
+        for dataset, patterns in DATASET_KEYWORDS.items():
+            if any(re.search(pat, lower) for pat in patterns):
+                counter[dataset] += 1
+    most_common = counter.most_common(top_k)
+    return [{"dataset": name, "count": count} for name, count in most_common]
 
 
 def derive_insights(stats: Dict) -> List[str]:
@@ -106,6 +233,8 @@ def derive_insights(stats: Dict) -> List[str]:
     topics = stats.get("topics", [])
     code_stats = stats.get("code_availability", {})
     category_counts = stats.get("category_counts", [])
+    domain_counts = stats.get("domain_counts", [])
+    method_counts = stats.get("method_counts", [])
 
     if year_counts:
         peak = max(year_counts, key=lambda x: x["count"])
@@ -134,6 +263,12 @@ def derive_insights(stats: Dict) -> List[str]:
         insights.append(
             f"{top_cat['category']} contains the most entries ({top_cat['count']})."
         )
+    if domain_counts:
+        top_domain = max(domain_counts, key=lambda x: x["count"])
+        insights.append(f"Most common domain focus: {top_domain['domain']}.")
+    if method_counts:
+        top_method = max(method_counts, key=lambda x: x["count"])
+        insights.append(f"Prevalent method family: {top_method['method']}.")
     return insights
 
 

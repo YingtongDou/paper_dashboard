@@ -20,6 +20,7 @@
       --muted: #94a3b8;
       --text: #e2e8f0;
       --shadow: 0 16px 60px rgba(0, 0, 0, 0.35);
+      --glass: rgba(255,255,255,0.04);
     }
     * { box-sizing: border-box; }
     body {
@@ -31,6 +32,16 @@
       color: var(--text);
       line-height: 1.6;
     }
+    .glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 20% 20%, rgba(56,189,248,0.08), transparent 20%),
+                  radial-gradient(circle at 80% 10%, rgba(244,114,182,0.08), transparent 25%),
+                  radial-gradient(circle at 50% 80%, rgba(45,212,191,0.08), transparent 25%);
+      z-index: 0;
+    }
+    main { position: relative; z-index: 1; }
     header {
       padding: 48px 5vw 16px;
     }
@@ -122,6 +133,47 @@
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 10px;
     }
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+    .badge {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(45,212,191,0.15);
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+    }
+    .chip .icon {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(56,189,248,0.35), rgba(244,114,182,0.35));
+      font-size: 13px;
+    }
     .resource-card {
       padding: 12px 14px;
       background: rgba(255,255,255,0.03);
@@ -136,9 +188,33 @@
     @media (max-width: 720px) {
       header, .section { padding: 22px; }
     }
+    /* Night-mode table styling */
+    .gridjs-container {
+      background: transparent !important;
+      color: var(--text);
+    }
+    .gridjs-table {
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .gridjs-th, .gridjs-td {
+      background: transparent !important;
+      border-color: rgba(255,255,255,0.06);
+      color: var(--text) !important;
+    }
+    .gridjs-tr:nth-child(even) .gridjs-td {
+      background: rgba(255,255,255,0.02) !important;
+    }
+    .gridjs-tr:hover .gridjs-td {
+      background: rgba(56,189,248,0.12) !important;
+    }
   </style>
 </head>
 <body>
+  <div class="glow" aria-hidden="true"></div>
+  <main>
   <header>
     <span class="pill">Graph & Transformer Fraud Detection Papers</span>
     <h1>Interactive summary of the Safe-Graph curated list</h1>
@@ -179,9 +255,54 @@
     <div class="grid">
       <div class="panel"><div id="year-chart" style="height:320px;"></div></div>
       <div class="panel"><div id="category-chart" style="height:320px;"></div></div>
-      <div class="panel"><div id="venue-chart" style="height:320px;"></div></div>
       <div class="panel"><div id="topic-chart" style="height:320px;"></div></div>
-      <div class="panel"><div id="language-chart" style="height:320px;"></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Method & domain signals</h2>
+    <p>Lightweight NLP tagging on titles to surface method families and application domains.</p>
+    <div class="grid">
+      <div class="panel"><div id="method-chart" style="height:320px;"></div></div>
+      <div class="panel"><div id="domain-chart" style="height:320px;"></div></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Venues and strata</h2>
+    <p>Top venues plus a breakdown across arXiv, workshops, top-tier conferences/journals, and others.</p>
+    <div class="grid">
+      <div class="panel"><div id="venue-chart" style="height:360px;"></div></div>
+      <div class="panel"><div id="venue-strata-chart" style="height:360px;"></div></div>
+      <div class="panel">
+        <h3 style="margin:0 0 8px;">Top venues</h3>
+        <div id="venue-list" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Code availability & repos</h2>
+    <p>Where code is linked, language share and top-starred repositories.</p>
+    <div class="grid">
+      <div class="panel"><div id="code-presence-chart" style="height:280px;"></div></div>
+      <div class="panel"><div id="language-chart" style="height:280px;"></div></div>
+      <div class="panel">
+        <h3 style="margin:0 0 6px;">Top GitHub repos</h3>
+        <div id="top-repo-list" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Dataset mentions</h2>
+    <p>Datasets detected from paper titles (heuristic keyword matching).</p>
+    <div class="grid">
+      <div class="panel"><div id="dataset-chart" style="height:300px;"></div></div>
+      <div class="panel">
+        <h3 style="margin:0 0 8px;">Most cited datasets</h3>
+        <div id="dataset-list" class="list"></div>
+      </div>
     </div>
   </section>
 
@@ -209,6 +330,40 @@
     const resources = {{ resources_json | safe }};
 
     const fmtNumber = (n) => n?.toLocaleString("en-US");
+    const langIcons = {
+      "Python": "🐍",
+      "Jupyter Notebook": "📓",
+      "JavaScript": "🟨",
+      "TypeScript": "💠",
+      "C++": "🧊",
+      "C": "⚙️",
+      "Go": "🐹",
+      "Rust": "🦀",
+      "Julia": "🔮",
+      "R": "📊",
+      "Java": "☕",
+    };
+    const venueIcons = {
+      "KDD": "🔷",
+      "NeurIPS": "🧠",
+      "ICLR": "🌄",
+      "ICML": "📈",
+      "AAAI": "🤖",
+      "IJCAI": "🌐",
+      "WWW": "🕸️",
+      "TheWebConf": "🕸️",
+      "CIKM": "📚",
+      "WSDM": "🔍",
+      "SDM": "🧭",
+      "SIGIR": "🔎",
+      "ACL": "💬",
+      "EMNLP": "🗣️",
+      "TKDE": "📘",
+      "TNNLS": "🧠",
+      "TIFS": "🛡️",
+    };
+
+    const makeChip = (label, icon) => `<span class="chip"><span class="icon">${icon || "★"}</span>${label}</span>`;
 
     function populateStats() {
       document.getElementById("stat-paper-count").textContent = fmtNumber(stats.paper_count || papers.length);
@@ -240,7 +395,7 @@
       Plotly.newPlot(container, data, {...baseLayout, ...layoutExtras}, {displayModeBar: false, responsive: true});
     }
 
-    function buildCharts() {
+    function buildOverviewCharts() {
       const years = stats.year_counts || [];
       chart("year-chart", [{
         x: years.map(d => d.year),
@@ -257,20 +412,92 @@
         marker: {color: "#2dd4bf"}
       }], {title: "Entries by Category", height: 320, margin: {l: 120, r: 20, t: 30, b: 40}});
 
-      chart("venue-chart", [{
-        x: stats.venue_counts?.map(d => d.count),
-        y: stats.venue_counts?.map(d => d.venue),
-        type: "bar",
-        orientation: "h",
-        marker: {color: "#818cf8"}
-      }], {title: "Top Venues", height: 360, margin: {l: 160, r: 20, t: 30, b: 40}});
-
       chart("topic-chart", [{
         x: stats.topics?.map(d => d.topic),
         y: stats.topics?.map(d => d.count),
         type: "bar",
         marker: {color: "#f472b6"}
       }], {title: "Frequent Title Terms", height: 320});
+    }
+
+    function buildMethodDomainCharts() {
+      if (stats.method_counts?.length) {
+        chart("method-chart", [{
+          x: stats.method_counts.map(d => d.count),
+          y: stats.method_counts.map(d => d.method),
+          type: "bar",
+          orientation: "h",
+          marker: {color: "#f472b6"}
+        }], {title: "Method families (title tags)", height: 320, margin: {l: 170, r: 20, t: 30, b: 40}});
+      } else {
+        document.getElementById("method-chart").innerHTML = "<p style='color:#94a3b8'>No method tags detected.</p>";
+      }
+
+      if (stats.domain_counts?.length) {
+        chart("domain-chart", [{
+          x: stats.domain_counts.map(d => d.count),
+          y: stats.domain_counts.map(d => d.domain),
+          type: "bar",
+          orientation: "h",
+          marker: {color: "#38bdf8"}
+        }], {title: "Domain focus (title tags)", height: 320, margin: {l: 170, r: 20, t: 30, b: 40}});
+      } else {
+        document.getElementById("domain-chart").innerHTML = "<p style='color:#94a3b8'>No domain tags detected.</p>";
+      }
+    }
+
+    function buildVenueCharts() {
+      if (stats.venue_counts?.length) {
+        chart("venue-chart", [{
+          x: stats.venue_counts.map(d => d.count),
+          y: stats.venue_counts.map(d => d.venue),
+          type: "bar",
+          orientation: "h",
+          marker: {color: "#818cf8"}
+        }], {title: "Top Venues", height: 360, margin: {l: 160, r: 20, t: 30, b: 40}});
+      } else {
+        document.getElementById("venue-chart").innerHTML = "<p style='color:#94a3b8'>No venue data.</p>";
+      }
+
+      if (stats.venue_strata?.length) {
+        chart("venue-strata-chart", [{
+          labels: stats.venue_strata.map(d => d.stratum),
+          values: stats.venue_strata.map(d => d.count),
+          type: "pie",
+          hole: 0.35
+        }], {title: "Venue strata", height: 360});
+      } else {
+        document.getElementById("venue-strata-chart").innerHTML = "<p style='color:#94a3b8'>No venue strata data.</p>";
+      }
+
+      const venueList = document.getElementById("venue-list");
+      const venues = stats.venue_counts || [];
+      if (!venues.length) {
+        venueList.innerHTML = "<p style='color:#94a3b8'>No venue data.</p>";
+      } else {
+        venues.slice(0, 10).forEach((entry, idx) => {
+          const item = document.createElement("div");
+          item.className = "list-item";
+          const icon = venueIcons[entry.venue] || "🏛️";
+          item.innerHTML = `<span>${idx + 1}. ${makeChip(entry.venue, icon)}</span>
+                            <span class="badge">${fmtNumber(entry.count)}</span>`;
+          venueList.appendChild(item);
+        });
+      }
+    }
+
+    function buildCodeCharts() {
+      if (stats.code_availability?.total) {
+        chart("code-presence-chart", [{
+          labels: ["With code", "No code"],
+          values: [stats.code_availability.with_code, stats.code_availability.without_code],
+          type: "pie",
+          hole: 0.4,
+          marker: {colors: ["#2dd4bf", "#1e293b"]}
+        }], {title: "Code availability"});
+      } else {
+        document.getElementById("code-presence-chart").innerHTML = "<p style='color:#94a3b8'>No code availability data.</p>";
+      }
 
       if (stats.language_counts?.length) {
         chart("language-chart", [{
@@ -281,6 +508,49 @@
         }], {title: "Language share (code repos)", height: 320});
       } else {
         document.getElementById("language-chart").innerHTML = "<p style='color:#94a3b8'>No code language data yet.</p>";
+      }
+
+      const repoContainer = document.getElementById("top-repo-list");
+      const repos = stats.top_repos || [];
+      if (!repos.length) {
+        repoContainer.innerHTML = "<p style='color:#94a3b8'>No GitHub metadata fetched (run without --skip-code-fetch and set GITHUB_TOKEN).</p>";
+      } else {
+        repos.forEach((repo, idx) => {
+          const item = document.createElement("div");
+          item.className = "list-item";
+          const langIcon = langIcons[repo.language] || "💻";
+          const langChip = repo.language ? makeChip(repo.language, langIcon) : "";
+          item.innerHTML = `<span>${idx + 1}. <a href="${repo.url}" target="_blank" rel="noopener">${repo.full_name}</a></span>
+                            <span style="display:flex;align-items:center;gap:8px;">${langChip}<span class="badge">★ ${fmtNumber(repo.stars)}</span></span>`;
+          repoContainer.appendChild(item);
+        });
+      }
+    }
+
+    function buildDatasetSection() {
+      const ds = stats.dataset_counts || [];
+      if (ds.length) {
+        chart("dataset-chart", [{
+          x: ds.map(d => d.count),
+          y: ds.map(d => d.dataset),
+          type: "bar",
+          orientation: "h",
+          marker: {color: "#22d3ee"}
+        }], {title: "Dataset mentions in titles", height: 300, margin: {l: 180, r: 20, t: 30, b: 30}});
+      } else {
+        document.getElementById("dataset-chart").innerHTML = "<p style='color:#94a3b8'>No dataset mentions detected.</p>";
+      }
+
+      const list = document.getElementById("dataset-list");
+      if (!ds.length) {
+        list.innerHTML = "<p style='color:#94a3b8'>No dataset mentions detected.</p>";
+      } else {
+        ds.forEach((entry) => {
+          const item = document.createElement("div");
+          item.className = "list-item";
+          item.innerHTML = `<span>${entry.dataset}</span><span class="badge">${fmtNumber(entry.count)}</span>`;
+          list.appendChild(item);
+        });
       }
     }
 
@@ -323,9 +593,14 @@
     }
 
     populateStats();
-    buildCharts();
+    buildOverviewCharts();
+    buildMethodDomainCharts();
+    buildVenueCharts();
+    buildCodeCharts();
+    buildDatasetSection();
     buildTable();
     buildResources();
   </script>
+  </main>
 </body>
 </html>

@@ -30,6 +30,10 @@ def build_stats(parsed: ParseResult, token: str, skip_code_fetch: bool) -> Dict:
         "topics": analysis.word_frequencies([p.title for p in papers]),
         "code_availability": analysis.code_availability(papers),
         "category_counts": analysis.counts_by_category(papers),
+        "method_counts": analysis.method_families(papers),
+        "domain_counts": analysis.domain_focus(papers),
+        "venue_strata": analysis.venue_strata(papers),
+        "dataset_counts": analysis.dataset_mentions(papers),
         "paper_count": len(papers),
     }
 
@@ -43,6 +47,19 @@ def build_stats(parsed: ParseResult, token: str, skip_code_fetch: bool) -> Dict:
         stats["language_counts"] = []
 
     stats["code_repos"] = [asdict(r) for r in code_repos]
+    stats["top_repos"] = sorted(
+        [
+            {
+                "full_name": r.full_name,
+                "stars": r.stars,
+                "url": r.url,
+                "language": r.language,
+            }
+            for r in code_repos
+        ],
+        key=lambda x: x["stars"],
+        reverse=True,
+    )[:10]
     stats["insights"] = analysis.derive_insights(stats)
     return stats
 
