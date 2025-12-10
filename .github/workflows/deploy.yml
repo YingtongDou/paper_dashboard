@@ -36,7 +36,20 @@ jobs:
       - name: Build dashboard
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/build_dashboard.py --output-dir site
+        run: python scripts/build_dashboard.py --output-dir frontend/public --json-only
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install
+
+      - name: Build SPA
+        working-directory: frontend
+        run: npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

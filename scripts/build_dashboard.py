@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import sys
@@ -96,6 +97,11 @@ def main() -> None:
         action="store_true",
         help="Skip git clone/pull (assumes paper repo directory already contains README).",
     )
+    parser.add_argument(
+        "--json-only",
+        action="store_true",
+        help="Only emit data.json (skip HTML rendering).",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -117,7 +123,10 @@ def main() -> None:
         "stats": stats,
         "resources": [asdict(r) for r in parsed.resources],
     }
-    render_dashboard(template_path, output_dir, context)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "data.json").write_text(json.dumps(context, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not args.json_only:
+        render_dashboard(template_path, output_dir, context)
 
 
 if __name__ == "__main__":

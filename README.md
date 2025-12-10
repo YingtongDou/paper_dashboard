@@ -14,17 +14,27 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# build dashboard into site/
-python scripts/build_dashboard.py --paper-repo-dir tmp_papers_repo --output-dir site --skip-code-fetch
+# generate data.json for the SPA
+python scripts/build_dashboard.py --paper-repo-dir tmp_papers_repo --output-dir frontend/public --skip-code-fetch --json-only
+
+# build Svelte + ECharts SPA into site/
+cd frontend && npm install && npm run build
 # open site/index.html in a browser
 ```
 - Omit `--skip-code-fetch` to query GitHub for stars/languages (set `GITHUB_TOKEN` to avoid rate limits).
 - Add `--skip-sync` to reuse a pre-cloned paper repo without pulling.
 - The script clones the paper list into `data/papers_repo` by default; override with `--paper-repo-dir` if desired.
 
+### Frontend stack
+- Svelte + Vite SPA in `frontend/` with ECharts visuals and a dark-themed table.
+- Data is pulled from `data.json` emitted by the Python pipeline (placed in `frontend/public` before building).
+
 ## Deploying to GitHub Pages
 1. Enable Pages in repo settings with source: GitHub Actions.
-2. Push to `main` (or run the workflow manually). The workflow builds `site/` and publishes it.
+2. Push to `main` (or run the workflow manually). The workflow now:
+   - Runs the Python pipeline to emit `frontend/public/data.json`
+   - Installs Node deps and builds the SPA into `site/`
+   - Publishes `site/` to Pages
 
 ## Updating when the paper repo changes
 - The workflow triggers on a nightly schedule and on `repository_dispatch` with type `paper-repo-updated`.
