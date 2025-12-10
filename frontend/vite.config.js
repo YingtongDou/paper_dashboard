@@ -4,7 +4,8 @@ import path from "path";
 
 export default defineConfig({
   plugins: [svelte()],
-  root: "frontend",
+  root: ".", // run from frontend/ by default
+  base: "./",
   build: {
     outDir: "../site",
     emptyOutDir: true,
